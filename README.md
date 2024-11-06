@@ -24,13 +24,24 @@ for the user's questions and the exercises' descriptions.
 ## Installation
 
 
-
 ## Usage
+
+### Requirements
+
+- Go 1.22+ [docs](https://golang.org/doc/install)
+- [Environment Variables](#environment-variables)
+
+#### Environment Variables
+
+- `OPENAI_API_KEY`: The OpenAI API key [docs](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key).
+- `BF_DB_URL`: The TimescaleDB database URL [docs](https://docs.timescale.com/use-timescale/latest/integrations/query-admin/about-connecting/). 
 
 ### BuddyFit CLI
 
+After [installing](#installation) the CLI, you can run the CLI app but invoking the `buddyfit` command and pass the `-p` or `-prompt` flag with your question.
+
 ```bash
-./buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
+buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
 ````
 
 ## Example Usage

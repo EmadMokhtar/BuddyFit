@@ -24,4 +24,10 @@ go.work.sum
 # env file
 .env
 
+# macos
 .DS_Store
+
+# Binaries
+buddyfit
+fetcher
+importer
