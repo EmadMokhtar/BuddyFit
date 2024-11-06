@@ -3,14 +3,26 @@ package internal
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"os"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func AskAI(prompt string) string {
 	dsn := os.Getenv("BF_DB_URL")
+
+	if dsn == "" {
+		fmt.Fprintf(os.Stderr, "BF_DB_URL environment variable is not set\n")
+		os.Exit(1)
+	}
+
 	openAIKey := os.Getenv("OPENAI_API_KEY")
+
+	if openAIKey == "" {
+		fmt.Fprintf(os.Stderr, "OPENAI_API_KEY environment variable is not set\n")
+		os.Exit(1)
+	}
 
 	// Set PGOPTIONS environment variable
 	connConfig, err := pgx.ParseConfig(dsn)

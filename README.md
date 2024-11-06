@@ -24,6 +24,21 @@ for the user's questions and the exercises' descriptions.
 ## Installation
 
 
+```bash
+go install github.com/EmadMokhtar/BuddyFit/cmd/buddyfit@v1.0.0
+```
+
+Make sure the cli is installed by running the following command:
+
+```bash
+$ buddyfit --help
+Usage of buddyfit:
+  -p string
+    	Alias for prompt
+  -prompt string
+    	Prompt for the AI
+````
+
 ## Usage
 
 ### Requirements
@@ -41,7 +56,7 @@ for the user's questions and the exercises' descriptions.
 After [installing](#installation) the CLI, you can run the CLI app but invoking the `buddyfit` command and pass the `-p` or `-prompt` flag with your question.
 
 ```bash
-buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
+$ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
 ````
 
 ## Example Usage
@@ -49,7 +64,7 @@ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per 
 #### Example 1
 
 ```bash
-$ ./buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
+$ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
 ```
 
   Sure! Here's a sample 4-day upper and lower body split that focuses on
@@ -103,7 +118,7 @@ This plan should help you build muscle efficiently without lengthy gym sessions.
 #### Example 2
 
 ```bash
-$ ./buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
+$ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times per week. Can you build a plan for me? I don't want to spend long time in the gym"
 ```
 
 
@@ -157,7 +172,7 @@ This plan should help you build muscle efficiently without lengthy gym sessions.
 #### Example 3
 
 ```bash
-$ ./buddyfit -p "can you make a plan to target a bigger biceps?"
+$ buddyfit -p "can you make a plan to target a bigger biceps?"
 ```
 
  To target bigger biceps, you can follow this workout plan that emphasizes 
