@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,8 +18,16 @@ const sep = "=="
 
 func main() {
 	// Lead the csv file and get the youtube video urls
-	// TODO: make the file path as a command line argument
-	file, err := os.Open("yt_video_list.csv")
+	csvFilePath := flag.String("file", "", "Path to the CSV file containing YouTube video URLs")
+	includingHeaders := flag.Bool("headers", true, "Indicate whether the CSV file include headers or not. Default: Yes")
+	flag.Parse()
+
+	if *csvFilePath == "" {
+		fmt.Printf("")
+		return
+	}
+
+	file, err := os.Open(*csvFilePath)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -27,6 +36,14 @@ func main() {
 
 	// Create a new CSV reader
 	reader := csv.NewReader(file)
+
+	if *includingHeaders {
+		// Read and discard the first record (header)
+		if _, err := reader.Read(); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+	}
 
 	// Read all records from the CSV file
 	records, err := reader.ReadAll()
