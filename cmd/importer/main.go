@@ -51,5 +51,8 @@ func main() {
 		}
 		return nil
 	})
+	if err != nil {
+		fmt.Printf("Error while looping over files in the directory, %s", err)
+	}
 
 }
