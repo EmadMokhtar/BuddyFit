@@ -25,7 +25,7 @@ for the user's questions and the exercises' descriptions.
 
 
 ```bash
-go install github.com/EmadMokhtar/BuddyFit/cmd/buddyfit@v1.0.0
+go install github.com/EmadMokhtar/BuddyFit/cmd/buddyfit@latest
 ```
 
 Make sure the cli is installed by running the following command:
