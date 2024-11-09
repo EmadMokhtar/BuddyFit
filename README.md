@@ -4,7 +4,7 @@ BuddyFit is an AI-powered, conversational interface designed to help users build
 
 ## Architecture
 
-![architecture](./arch.png)
+![architecture](./assets/arch.png)
 
 ## Components
 
@@ -22,7 +22,6 @@ BuddyFit is using OpenAI's `text-embedding-3-small` and `gpt-4o-mini` models to 
 for the user's questions and the exercises' descriptions.
 
 ## Installation
-
 
 ```bash
 go install github.com/EmadMokhtar/BuddyFit/cmd/buddyfit@latest
@@ -60,6 +59,14 @@ $ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times pe
 ````
 
 ## Example Usage
+
+### Web App
+
+![Web App example 1](./assets/web-app-example-1.png)
+
+![Web App example 2](./assets/web-app-example-2.png)
+
+### CLI
 
 #### Example 1
 
