@@ -4,7 +4,7 @@ BuddyFit is an AI-powered, conversational interface designed to help users build
 
 ## Architecture
 
-![architecture](./arch.png)
+![architecture](./assets/arch.png)
 
 ## Components
 
@@ -60,6 +60,12 @@ $ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times pe
 ````
 
 ## Example Usage
+
+### Web App
+
+
+
+### CLI
 
 #### Example 1
 
