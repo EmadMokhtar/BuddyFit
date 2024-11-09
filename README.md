@@ -23,7 +23,6 @@ for the user's questions and the exercises' descriptions.
 
 ## Installation
 
-
 ```bash
 go install github.com/EmadMokhtar/BuddyFit/cmd/buddyfit@latest
 ```
@@ -63,7 +62,9 @@ $ buddyfit -p "I want to maximize my muscle gain and going to the gym 4 times pe
 
 ### Web App
 
+![Web App example 1](./assets/web-app-example-1.png)
 
+![Web App example 2](./assets/web-app-example-2.png)
 
 ### CLI
 

@@ -4,7 +4,8 @@
       <div v-for="(message, index) in messages" :key="index" :class="{'user-message': message.user, 'ai-message': !message.user}">
         <span v-if="message.user" class="emoji">💪</span>
         <span v-else class="emoji">🤖</span>
-        <p v-html="message.text"></p>
+        <p v-if="message.user">{{ message.text }}</p>
+        <p v-else v-html="message.html"></p>
       </div>
     </div>
     <div class="input-container">
@@ -16,6 +17,7 @@
 
 <script>
 import axios from 'axios';
+import { marked } from 'marked';
 
 export default {
   data() {
@@ -34,21 +36,12 @@ export default {
 
       try {
         const response = await axios.post('http://localhost:8000/ask', { prompt: userInput });
-        this.messages.push({ text: this.formatMessage(response.data.response), user: false });
+        const markdownResponse = response.data.response;
+        const htmlResponse = marked(markdownResponse);
+        this.messages.push({ text: markdownResponse, html: htmlResponse, user: false });
       } catch (error) {
         console.error('Error sending message:', error);
       }
-    },
-    formatMessage(text) {
-      // Split the text into an array of sentences
-      const sentences = text.split(/(\d+\.\s)/).filter(Boolean);
-      // Format the sentences into a list
-      let formattedText = "<ul>";
-      for (let i = 0; i < sentences.length; i += 2) {
-        formattedText += `<li>${sentences[i]}${sentences[i + 1]}</li>`;
-      }
-      formattedText += "</ul>";
-      return formattedText;
     }
   }
 };
@@ -100,6 +93,7 @@ input {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: large;
 }
 
 button {
