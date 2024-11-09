@@ -1,7 +1,7 @@
 # Makefile for building Go binaries and running the API server and Vue.js app
 
 # Define the commands
-CMDS = fetcher importer buddyfit
+CMDS = fetcher importer buddyfit api
 
 # Variables
 GO_CMD=go
@@ -16,13 +16,17 @@ all: $(CMDS)
 $(CMDS):
 	$(GO_CMD) build -o ./bin/$@ ./cmd/$@
 
+# Build the Vue.js app
+frontend:
+	cd $(FRONTEND_DIR) && $(NPM_CMD) install && $(NPM_CMD) run build && $(NPM_CMD) install -g serve && serve -s dist
+
 # Run the Go API server
-api:
+run-api:
 	@echo "Running Go API server..."
 	cd $(API_DIR) && $(GO_CMD) run main.go
 
 # Run the Vue.js app
-frontend:
+run-frontend:
 	@echo "Running Vue.js app..."
 	cd $(FRONTEND_DIR) && $(NPM_CMD) install && $(NPM_CMD) run dev
 
