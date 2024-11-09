@@ -28,6 +28,7 @@ go.work.sum
 .DS_Store
 
 # Binaries
-buddyfit
-fetcher
-importer
+bin/buddyfit
+bin/fetcher
+bin/importer
+bin/api
