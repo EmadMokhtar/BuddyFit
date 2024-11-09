@@ -10,7 +10,7 @@ API_DIR=cmd/api
 FRONTEND_DIR=buddyfit-bot-chat
 
 # Default target
-all: $(CMDS) api frontend
+all: $(CMDS)
 
 # Build each command
 $(CMDS):
