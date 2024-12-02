@@ -18,9 +18,9 @@ func AskAI(prompt string) string {
 	}
 
 	openAIKey := os.Getenv("OPENAI_API_KEY")
-
-	if openAIKey == "" {
-		fmt.Fprintf(os.Stderr, "OPENAI_API_KEY environment variable is not set\n")
+	ollamaHost := os.Getenv("OLLAMA_HOST")
+	if openAIKey == "" && ollamaHost == "" {
+		fmt.Fprintf(os.Stderr, "OPENAI_API_KEY or OLLAMA_HOST environment variable is not set\n")
 		os.Exit(1)
 	}
 
@@ -30,10 +30,15 @@ func AskAI(prompt string) string {
 		fmt.Fprintf(os.Stderr, "Unable to parse DSN: %v\n", err)
 		os.Exit(1)
 	}
-	connConfig.RuntimeParams["options"] = fmt.Sprintf("-c ai.openai_api_key=%s", openAIKey)
+	if openAIKey != "" {
+		connConfig.RuntimeParams["options"] = fmt.Sprintf("-c ai.openai_api_key=%s", openAIKey)
+	} else {
+		// TODO: Fix the OLLAMA_HOST that missing the 'http://'
+		connConfig.RuntimeParams["options"] = fmt.Sprintf("-c ai.ollama_host=%s", ollamaHost)
+	}
 
 	// Connect to the database
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	conn, err := pgx.ConnectConfig(ctx, connConfig)
