@@ -6,8 +6,6 @@ import (
 	"os"
 
 	"github.com/EmadMokhtar/BuddyFit/internal"
-
-	"github.com/charmbracelet/glamour"
 )
 
 func main() {
@@ -15,25 +13,31 @@ func main() {
 	prompt := flag.String("prompt", "", "Prompt for the AI")
 	p := flag.String("p", "", "Alias for prompt")
 	flag.Parse()
+	noPrompt := *prompt == "" && *p == ""
 
 	// Check if the argument is provided
-	if *prompt == "" {
-		if *p == "" {
-			fmt.Println("Error: -prompt is required")
-			flag.Usage()
-			os.Exit(1)
-		} else {
-			*prompt = *p
-		}
-	}
-
-	// Call the AskAI function
-	response := internal.AskAI(*prompt)
-
-	out, err := glamour.Render(response, "dark")
-	if err != nil {
-		fmt.Println(err)
+	if noPrompt {
+		fmt.Println("Error: -prompt is required")
+		flag.Usage()
 		os.Exit(1)
 	}
-	fmt.Print(out)
+
+	// Check if the prompt is empty and the alias is not
+	// If so, set the alias to the prompt
+	if *prompt == "" && *p != "" {
+		prompt = p
+	}
+
+	responseChan := internal.AskAI(*prompt)
+
+	for response := range responseChan {
+		fmt.Print(response)
+		// FIXME: This is the glamour code doesn't support the rendering of the stream response.
+		//out, err := r.Render(response)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	os.Exit(1)
+		//}
+		//fmt.Print(out)
+	}
 }
