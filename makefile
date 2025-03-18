@@ -48,5 +48,7 @@ database-stop:
 vectorizer-worker-start:
 	cd $(DOCKER_DIR) && docker compose up -d vectorizer-worker
 
+import-data:
+	BF_DB_URL='postgres://buddyfit:buddyfit-password:@localhost:5432/buddyfit?sslmode=disable' BF_DATA_DIR='/Users/emadmokhtar/Projects/BuddyFit/data' go run ./cmd/importer
 
 .PHONY: all clean $(CMDS) api frontend

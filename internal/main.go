@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"text/template"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -28,7 +29,7 @@ func GetOllamaAPIURL() string {
 	return fmt.Sprintf("http://%s:%s/api/chat", ollamaHost, ollamaPort)
 }
 
-func AskAI(prompt string) chan string {
+func AskAI(usrPrompt string, model string) chan string {
 	dsn := os.Getenv("BF_DB_URL")
 
 	if dsn == "" {
@@ -69,9 +70,9 @@ func AskAI(prompt string) chan string {
 	}
 	defer conn.Close(ctx)
 
-	// Ask pgai to generate a response
-	var response string
-	err = conn.QueryRow(ctx, "SELECT get_related_docs($1);", prompt).Scan(&response)
+	// Ask pgai to get related docs using RAG
+	var retdDocs string
+	err = conn.QueryRow(ctx, "SELECT get_related_docs($1);", usrPrompt).Scan(&retdDocs)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to get response: %v\n", err)
 		os.Exit(1)
@@ -79,9 +80,19 @@ func AskAI(prompt string) chan string {
 
 	// TODO: Create an Agent to encapsulate the chat logic
 	sysProm := "You are a helpful gym personal trainer and professional bodybuilder. Use only the context provided to answer the question. Also mention the titles of the youtube videos you use to answer the question."
-	userProm := fmt.Sprintf("Context: %s \n\n User Question: %s", response, prompt)
-	model := "llama3.1:latest"
-	chat := NewAIChat(model, sysProm, userProm)
+	tmpl, err := template.ParseFiles("templates/prompt_template.tmpl")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading template: %v\n", err)
+		os.Exit(1)
+	}
+	var prompt bytes.Buffer
+	err = tmpl.Execute(&prompt, map[string]string{"Context": retdDocs, "UserPrompt": usrPrompt})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error executing template: %v\n", err)
+		os.Exit(1)
+	}
+	//userProm := fmt.Sprintf("Context: %s \n\n User Question: %s", retdDocs, usrPrompt)
+	chat := NewAIChat(model, sysProm, prompt.String())
 
 	chatJSON, err := json.Marshal(chat)
 	if err != nil {

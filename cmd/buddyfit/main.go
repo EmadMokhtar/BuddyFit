@@ -12,6 +12,7 @@ func main() {
 	// Define a flag for the required argument
 	prompt := flag.String("prompt", "", "Prompt for the AI")
 	p := flag.String("p", "", "Alias for prompt")
+	model := flag.String("model", "llama3.1:latest", "Model for the AI")
 	flag.Parse()
 	noPrompt := *prompt == "" && *p == ""
 
@@ -28,7 +29,7 @@ func main() {
 		prompt = p
 	}
 
-	responseChan := internal.AskAI(*prompt)
+	responseChan := internal.AskAI(*prompt, *model)
 
 	for response := range responseChan {
 		fmt.Print(response)
