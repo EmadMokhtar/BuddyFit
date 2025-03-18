@@ -1,1 +1,1 @@
-DROP FUNCTION IF EXISTS get_related_docs;
+SELECT ai.drop_vectorizer((SELECT v.id FROM ai.vectorizer v where v.source_table = 'yt_videos' LIMIT 1));
