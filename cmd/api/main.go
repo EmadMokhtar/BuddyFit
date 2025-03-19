@@ -25,13 +25,21 @@ func askAIHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+	model := "llama3.1:latest"
 
-	response := internal.AskAI(req.Prompt)
+	response := internal.AskAI(req.Prompt, model)
 
-	res := BuddyFitResponse{Response: response}
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(res); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	w.WriteHeader(http.StatusOK)
+
+	encoder := json.NewEncoder(w)
+	for msg := range response {
+		res := BuddyFitResponse{Response: msg}
+		if err := encoder.Encode(res); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
+		w.(http.Flusher).Flush()
 	}
 }
 

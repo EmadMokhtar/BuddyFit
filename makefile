@@ -8,6 +8,7 @@ GO_CMD=go
 NPM_CMD=npm
 API_DIR=cmd/api
 FRONTEND_DIR=buddyfit-bot-chat
+DOCKER_DIR=docker
 
 # Default target
 all: $(CMDS)
@@ -33,5 +34,21 @@ run-frontend:
 # Clean up binaries
 clean:
 	rm -f bin/*
+
+# Database commands
+migrate-up:
+	@migrate -database '$(BF_DB_URL)' -path ./migrations up
+
+database-start:
+	cd $(DOCKER_DIR) && docker compose up -d timescaledb
+
+database-stop:
+	cd $(DOCKER_DIR) && docker compose down timescaledb
+
+vectorizer-worker-start:
+	cd $(DOCKER_DIR) && docker compose up -d vectorizer-worker
+
+import-data:
+	BF_DB_URL='postgres://buddyfit:buddyfit-password:@localhost:5432/buddyfit?sslmode=disable' BF_DATA_DIR='/Users/emadmokhtar/Projects/BuddyFit/data' go run ./cmd/importer
 
 .PHONY: all clean $(CMDS) api frontend

@@ -1,0 +1,24 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg17
+    container_name: timescaledb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      OLLAMA_HOST: ${OLLAMA_HOST}
+    volumes:
+      - data:/home/postgres/pgdata/data
+    command: [ "-c", "ai.ollama_host=http://${OLLAMA_HOST}:${OLLAMA_PORT}" ]
+    network_mode: host
+
+  vectorizer-worker:
+    image: timescale/pgai-vectorizer-worker:pgai-v0.2.1
+    environment:
+      PGAI_VECTORIZER_WORKER_DB_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+      OLLAMA_HOST: ${OLLAMA_HOST}:${OLLAMA_PORT}
+    command: [ "--poll-interval", "5s", "--log-level", "DEBUG" ]
+    network_mode: host
+
+volumes:
+  data:
