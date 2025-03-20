@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/charmbracelet/glamour"
 
 	"github.com/EmadMokhtar/BuddyFit/internal"
 )
@@ -30,15 +33,17 @@ func main() {
 	}
 
 	responseChan := internal.AskAI(*prompt, *model)
+	var fullResp strings.Builder
 
 	for response := range responseChan {
 		fmt.Print(response)
-		// FIXME: This is the glamour code doesn't support the rendering of the stream response.
-		//out, err := r.Render(response)
-		//if err != nil {
-		//	fmt.Println(err)
-		//	os.Exit(1)
-		//}
-		//fmt.Print(out)
+		fullResp.WriteString(response)
 	}
+	fmt.Print("\033[2J")
+	out, err := glamour.Render(fullResp.String(), "dark")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Print(out)
 }

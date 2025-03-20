@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -14,8 +15,6 @@ import (
 
 var DataDir = os.Getenv("BF_DATA_DIR")
 
-const sep = "=="
-
 func main() {
 	// Lead the csv file and get the youtube video urls
 	csvFilePath := flag.String("file", "", "Path to the CSV file containing YouTube video URLs")
@@ -23,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	if *csvFilePath == "" {
-		fmt.Printf("")
+		fmt.Printf("CSV file path is required\n")
 		return
 	}
 
@@ -57,14 +56,14 @@ func main() {
 	// Download the subtitles from the youtube videos
 	for _, record := range records {
 		vidTitle := record[0]
-		vidUrl := record[1]
+		vidURL := record[1]
 		vidAuthor := record[2]
 		wgDl.Add(1)
-		go func(url, title, author string) {
+		go func(vidURL, title, author string) {
 			defer wgDl.Done()
-			filePath := DownloadSubtitles(url, title, author, DataDir)
+			filePath := DownloadSubtitles(vidURL, title, author, DataDir)
 			filePaths = append(filePaths, filePath)
-		}(vidUrl, vidTitle, vidAuthor)
+		}(vidURL, vidTitle, vidAuthor)
 	}
 
 	wgDl.Wait()
@@ -91,11 +90,11 @@ func main() {
 
 }
 
-func DownloadSubtitles(url, title, author, outputDir string) string {
+func DownloadSubtitles(vidURL, title, author, outputDir string) string {
 	binPath := getytDlPath()
-	outputFile := fmt.Sprintf("%s%s%s", author, sep, formatOutputFile(title))
+	outputFile := fmt.Sprintf("%s==%s==%s==", author, formatOutputFile(title), url.QueryEscape(vidURL))
 
-	cmd := fmt.Sprintf("%s --write-auto-subs --convert-subs srt --skip-download --sub-lang en -o '%s' %s", binPath, outputFile, url)
+	cmd := fmt.Sprintf("%s --write-auto-subs --convert-subs srt --skip-download --sub-lang en -o '%s' %s", binPath, outputFile, vidURL)
 	fmt.Printf("Running command: %s\n", cmd)
 	dlDlp := exec.Command("sh", "-c", cmd)
 	dlDlp.Dir = outputDir

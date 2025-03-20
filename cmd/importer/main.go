@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,8 +34,11 @@ func main() {
 				return nil
 			}
 			fileName := strings.Split(info.Name(), sep)
-			author, title := fileName[0], fileName[1]
-			title = strings.TrimSuffix(title, ".en.srt.txt")
+			author, title, vidURL := fileName[0], fileName[1], fileName[2]
+			// TODO: Remove _ from the title
+			title = strings.ReplaceAll(title, "_", " ")
+			// TODO: Remove the .en.srt.txt from the url
+			vidURL = strings.TrimSuffix(vidURL, ".en.srt.txt")
 			// Read the content of the file
 			content, err := os.ReadFile(path)
 			if err != nil {
@@ -42,7 +46,12 @@ func main() {
 			}
 			transcript := string(content)
 			// Insert the content into the table
-			_, err = conn.Exec(ctx, "INSERT INTO yt_videos (author, title, transcript) VALUES ($1, $2, $3)", author, title, transcript)
+			decodedVidURL, err := url.QueryUnescape(vidURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Unable to decode the URL: %v\n", err)
+				os.Exit(1)
+			}
+			_, err = conn.Exec(ctx, "INSERT INTO yt_videos (author, title, transcript, url) VALUES ($1, $2, $3, $4)", author, title, transcript, decodedVidURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Unable to insert data: %v\n", err)
 				os.Exit(1)

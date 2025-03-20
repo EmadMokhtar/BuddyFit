@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS public.yt_videos (
     author character varying,
     title character varying,
     transcript text,
+    url character varying,
     created_at timestamp without time zone DEFAULT now()
 );

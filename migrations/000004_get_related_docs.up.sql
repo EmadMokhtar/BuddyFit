@@ -5,9 +5,9 @@ DECLARE
     embedding_model_name TEXT = 'nomic-embed-text';
 BEGIN
    -- Perform similarity search to find relevant YouTube videos based on the query text
-   SELECT string_agg(title || ': ' || chunk, ' ') INTO context_chunks
+   SELECT string_agg(title || url || ': ' || chunk, ' ') INTO context_chunks
    FROM (
-       SELECT title, chunk
+       SELECT title, url, chunk
        FROM public.yt_videos_embeddings
        ORDER BY embedding <=> ai.ollama_embed(embedding_model_name, query_text)
        LIMIT 5
