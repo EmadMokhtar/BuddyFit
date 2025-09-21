@@ -11,8 +11,6 @@
         <option value="gosimple" />
       </list>
     </option>
-    <option name="goLinterExe" value="/opt/homebrew/bin/golangci-lint" />
     <option name="linterSelected" value="true" />
-    <option name="severity" value="Default" />
   </component>
 </project>
