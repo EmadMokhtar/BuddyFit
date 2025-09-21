@@ -5,6 +5,7 @@ go 1.23
 toolchain go1.23.9
 
 require (
+	github.com/buger/goterm v1.0.4
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/rs/cors v1.11.1
