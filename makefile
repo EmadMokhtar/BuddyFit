@@ -1,5 +1,5 @@
-
-.PHONY: all clean $(CMDS) api frontend test test-coverage test-verbose# Makefile for building Go binaries and running the API server and Vue.js app
+# Makefile for building Go binaries and running the API server and Vue.js app
+.PHONY: all clean $(CMDS) api frontend test test-coverage test-verbose
 
 # Define the commands
 CMDS = fetcher importer buddyfit api
