@@ -28,9 +28,9 @@ func (v *Video) UnescapedURL() string {
 }
 
 func NewVideoFromFileName(fileName, filePath string) (*Video, error) {
-	filNameNoExt := strings.TrimSuffix(fileName, ".en.srt.txt")
+	fileNameNoExt := strings.TrimSuffix(fileName, ".en.srt.txt")
 
-	parts := strings.Split(filNameNoExt, Sep)
+	parts := strings.Split(fileNameNoExt, Sep)
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("invalid file name format: %s", fileName)
 	}
