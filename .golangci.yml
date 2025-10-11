@@ -35,8 +35,8 @@ issues:
     - vendor
     - node_modules
     - .git
-  exclude-files:
-    - ".*\\.pb\\.go$"
+    - ../../go
+    - /home/runner/go/pkg
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
