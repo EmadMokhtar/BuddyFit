@@ -26,7 +26,11 @@ func main() {
 	defer func(conn *pgx.Conn, ctx context.Context) {
 		err = conn.Close(ctx)
 		if err != nil {
-
+			_, err := fmt.Fprintf(os.Stderr, "Unable to close database connection: %v\n", err)
+			if err != nil {
+				return
+			}
+			os.Exit(1)
 		}
 	}(conn, ctx)
 

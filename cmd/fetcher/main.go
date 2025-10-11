@@ -84,7 +84,7 @@ func main() {
 	defer func(archiveFile *os.File) {
 		err := archiveFile.Close()
 		if err != nil {
-
+			return
 		}
 	}(archiveFile)
 	// Update the archive file with the downloaded subtitles
