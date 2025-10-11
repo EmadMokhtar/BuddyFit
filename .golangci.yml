@@ -38,6 +38,7 @@ issues:
     - vendor
     - node_modules
     - .git
-    - go/pkg
+    - /home/runner/go/pkg/
+    - ../../go/pkg/
   exclude-files:
     - ".*\\.pb\\.go$"
