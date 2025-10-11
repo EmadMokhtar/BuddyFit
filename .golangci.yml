@@ -1,6 +1,12 @@
 run:
   timeout: 5m
-  modules-download-mode: readonly
+  skip-dirs:
+    - vendor
+    - node_modules
+    - .git
+  skip-files:
+    - ".*\\.pb\\.go$"
+  allow-parallel-runners: true
 
 linters:
   enable:
@@ -34,11 +40,5 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-dirs:
-    - vendor
-    - node_modules
-    - .git
-    - /home/runner/go/pkg/
-    - ../../go/pkg/
   exclude-files:
     - ".*\\.pb\\.go$"
