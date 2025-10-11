@@ -215,8 +215,8 @@ func downloadSubtitles(config *Config, cookies string) {
 
 		// Prepare command: yt-dlp with options for subtitle download only
 		args := []string{
-			"--skip-download",  // Don't download the video
-			"--write-auto-sub", // Download auto-generated subtitles
+			"--skip-download",          // Don't download the video
+			"--write-auto-sub",         // Download auto-generated subtitles
 			"--sub-format", "srt/best", // Prefer SRT format
 			"--convert-subs", "srt", // Convert subtitles to SRT
 			"--sub-langs", languageOpts, // Languages to download
