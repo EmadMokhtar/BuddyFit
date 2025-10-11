@@ -56,7 +56,10 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to create archive file: %v", err)
 		}
-		file.Close()
+		err = file.Close()
+		if err != nil {
+			return
+		}
 	}
 
 	if !*noDownload {
@@ -72,16 +75,23 @@ func main() {
 	}
 
 	archiveFile, err := os.OpenFile(config.ArchiveFile, os.O_APPEND|os.O_WRONLY, 0644)
-	defer archiveFile.Close()
+	if err != nil {
+		log.Fatalf("Error opening archive file: %v", err)
+	}
+	if archiveFile == nil {
+		log.Fatalf("Archive file is nil")
+	}
+	defer func(archiveFile *os.File) {
+		err := archiveFile.Close()
+		if err != nil {
+
+		}
+	}(archiveFile)
 	// Update the archive file with the downloaded subtitles
 	// Clean up subtitles
 	var wgConv sync.WaitGroup
 
 	for _, channel := range config.Channels {
-		if err != nil {
-			log.Fatalf("Error opening archive file: %v", err)
-		}
-
 		channelDir := filepath.Join(config.OutputDir, channel.ChannelName)
 
 		channelSubtitleFiles, err := os.ReadDir(channelDir)
@@ -148,7 +158,12 @@ func loadConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			return
+		}
+	}(file)
 
 	config := &Config{}
 	if err := json.NewDecoder(file).Decode(config); err != nil {
@@ -163,7 +178,12 @@ func saveConfig(config *Config, path string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			return
+		}
+	}(file)
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -232,8 +252,11 @@ func downloadSubtitles(config *Config, cookies string) {
 
 func extractVideoID(fileName string) string {
 	videoFilename := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	videoID := strings.Split(videoFilename, "||")
-	return videoID[0]
+	parts := strings.Split(videoFilename, "||")
+	if len(parts) > 0 {
+		return strings.TrimSpace(parts[0])
+	}
+	return videoFilename
 }
 
 func processSubtitleFile(inputFilename, outputFilename string) {
@@ -245,7 +268,12 @@ func processSubtitleFile(inputFilename, outputFilename string) {
 		fmt.Printf("Error: Input file '%s' not found.\n", inputFilename)
 		return
 	}
-	defer inputFile.Close()
+	defer func(inputFile *os.File) {
+		err := inputFile.Close()
+		if err != nil {
+			fmt.Printf("An error occurred: %v\n", err)
+		}
+	}(inputFile)
 
 	var processedLines []string
 	scanner := bufio.NewScanner(inputFile)
@@ -270,7 +298,12 @@ func processSubtitleFile(inputFilename, outputFilename string) {
 		fmt.Printf("An error occurred: %v\n", err)
 		return
 	}
-	defer outputFile.Close()
+	defer func(outputFile *os.File) {
+		err := outputFile.Close()
+		if err != nil {
+			fmt.Printf("An error occurred: %v\n", err)
+		}
+	}(outputFile)
 
 	combinedLines := strings.Join(processedLines, " ")
 	_, err = outputFile.WriteString(combinedLines)

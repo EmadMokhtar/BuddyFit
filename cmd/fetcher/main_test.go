@@ -14,12 +14,12 @@ func TestExtractVideoID(t *testing.T) {
 	}{
 		{
 			name:     "Case 1",
-			fileName: "1a8zuTfZhK0+=IS ＂STARVATION MODE＂ A REAL THING？ (What The Science Says).en.srt",
+			fileName: "1a8zuTfZhK0+ || IS ＂STARVATION MODE＂ A REAL THING？ (What The Science Says).en.srt",
 			expected: "1a8zuTfZhK0+",
 		},
 		{
 			name:     "Case 2",
-			fileName: "0a_fVS2s4Ho+=The Most Effective Way to Train HAMSTRINGS ｜ Training Science Explained.en.srt",
+			fileName: "0a_fVS2s4Ho+ || The Most Effective Way to Train HAMSTRINGS ｜| Training Science Explained.en.srt",
 			expected: "0a_fVS2s4Ho+",
 		},
 		{
