@@ -217,7 +217,6 @@ func downloadSubtitles(config *Config, cookies string) {
 		args := []string{
 			"--skip-download",  // Don't download the video
 			"--write-auto-sub", // Download auto-generated subtitles
-			//"--write-sub",         // Download regular subtitles
 			"--sub-format", "srt/best", // Prefer SRT format
 			"--convert-subs", "srt", // Convert subtitles to SRT
 			"--sub-langs", languageOpts, // Languages to download
