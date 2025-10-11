@@ -1,0 +1,44 @@
+run:
+  timeout: 5m
+  allow-parallel-runners: true
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - misspell
+    - gocyclo
+    - dupl
+    - goconst
+    - goimports
+
+linters-settings:
+  govet:
+    shadow: true
+  gocyclo:
+    min-complexity: 15
+  dupl:
+    threshold: 100
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+  exclude-dirs:
+    - vendor
+    - node_modules
+    - .git
+    - ../../go
+    - /home/runner/go/pkg
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-files:
+    - ".*\\.pb\\.go$"

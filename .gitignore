@@ -32,3 +32,5 @@ bin/buddyfit
 bin/fetcher
 bin/importer
 bin/api
+
+cookies.txt

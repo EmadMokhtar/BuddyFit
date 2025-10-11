@@ -1,4 +1,5 @@
 # Makefile for building Go binaries and running the API server and Vue.js app
+.PHONY: all clean $(CMDS) api frontend test test-coverage test-verbose
 
 # Define the commands
 CMDS = fetcher importer buddyfit api
@@ -51,4 +52,14 @@ vectorizer-worker-start:
 import-data:
 	BF_DB_URL='postgres://buddyfit:buddyfit-password:@localhost:5432/buddyfit?sslmode=disable' BF_DATA_DIR='/Users/emadmokhtar/Projects/BuddyFit/data' go run ./cmd/importer
 
-.PHONY: all clean $(CMDS) api frontend
+# Run tests
+test:
+	$(GO_CMD) test ./...
+
+# Run tests with coverage
+test-coverage:
+	$(GO_CMD) test -cover ./...
+
+# Run tests with verbose output
+test-verbose:
+	$(GO_CMD) test -v ./...

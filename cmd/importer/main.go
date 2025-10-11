@@ -3,15 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
+
+	"github.com/EmadMokhtar/BuddyFit/internal"
 )
-
-const sep = "=="
 
 func main() {
 	dsn := os.Getenv("BF_DB_URL")
@@ -19,10 +17,22 @@ func main() {
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		_, err := fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		if err != nil {
+			return
+		}
 		os.Exit(1)
 	}
-	defer conn.Close(ctx)
+	defer func(conn *pgx.Conn, ctx context.Context) {
+		err = conn.Close(ctx)
+		if err != nil {
+			_, err := fmt.Fprintf(os.Stderr, "Unable to close database connection: %v\n", err)
+			if err != nil {
+				return
+			}
+			os.Exit(1)
+		}
+	}(conn, ctx)
 
 	// Read all the files in the data directory and insert them into the database
 	err = filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
@@ -33,27 +43,22 @@ func main() {
 			if filepath.Ext(info.Name()) != ".txt" {
 				return nil
 			}
-			fileName := strings.Split(info.Name(), sep)
-			author, title, vidURL := fileName[0], fileName[1], fileName[2]
-			// TODO: Remove _ from the title
-			title = strings.ReplaceAll(title, "_", " ")
-			// TODO: Remove the .en.srt.txt from the url
-			vidURL = strings.TrimSuffix(vidURL, ".en.srt.txt")
-			// Read the content of the file
-			content, err := os.ReadFile(path)
+			// Example: 0FE_0zjjaQs||The Truth About Genetics and YOUR Muscle Growth.en.srt.txt
+			// Result should be: Video ID: 0FE_0zjjaQs, Title: The Truth About Genetics and YOUR Muscle Growth, Author: file directory name
+			video, err := internal.NewVideoFromFileName(info.Name(), path)
 			if err != nil {
-				return err
+				_, err = fmt.Fprintf(os.Stderr, "Unable to create video from file name: %v\n", err)
+				if err != nil {
+					return err
+				}
+				return nil // Continue processing other files
 			}
-			transcript := string(content)
-			// Insert the content into the table
-			decodedVidURL, err := url.QueryUnescape(vidURL)
+			_, err = conn.Exec(ctx, "INSERT INTO yt_videos (author, title, transcript, url) VALUES ($1, $2, $3, $4)", video.Author, video.Title, video.Transcript, video.UnescapedURL())
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Unable to decode the URL: %v\n", err)
-				os.Exit(1)
-			}
-			_, err = conn.Exec(ctx, "INSERT INTO yt_videos (author, title, transcript, url) VALUES ($1, $2, $3, $4)", author, title, transcript, decodedVidURL)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Unable to insert data: %v\n", err)
+				_, err = fmt.Fprintf(os.Stderr, "Unable to insert data: %v\n", err)
+				if err != nil {
+					return err
+				}
 				os.Exit(1)
 			}
 			fmt.Println(path)

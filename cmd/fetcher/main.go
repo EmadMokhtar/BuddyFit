@@ -2,161 +2,263 @@ package main
 
 import (
 	"bufio"
-	"encoding/csv"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"net/url"
+	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
-var DataDir = os.Getenv("BF_DATA_DIR")
+type ChannelDetails struct {
+	ChannelID   string `json:"id"`
+	ChannelName string `json:"name"`
+	ChannelURL  string `json:"url"`
+}
+
+type Config struct {
+	Channels      []ChannelDetails `json:"channels"`
+	OutputDir     string           `json:"output_dir"`
+	ArchiveFile   string           `json:"archive_file"`
+	CheckInterval int              `json:"check_interval_hours"`
+	Languages     []string         `json:"languages"`
+	LastRunTime   int64            `json:"last_run_time"`
+}
 
 func main() {
-	// Lead the csv file and get the youtube video urls
-	csvFilePath := flag.String("file", "", "Path to the CSV file containing YouTube video URLs")
-	includingHeaders := flag.Bool("headers", true, "Indicate whether the CSV file include headers or not. Default: Yes")
+	// Parse command-line flags
+	configFile := flag.String("config", "config.json", "Path to configuration file")
+	runOnce := flag.Bool("once", false, "Run once without scheduling")
+	noDownload := flag.Bool("no-download", false, "Run without downloading subtitles")
+	cookies := flag.String("cookies", "", "Path to cookies file")
+
 	flag.Parse()
 
-	if *csvFilePath == "" {
-		fmt.Printf("CSV file path is required\n")
-		return
-	}
-
-	file, err := os.Open(*csvFilePath)
+	// Load configuration
+	config, err := loadConfig(*configFile)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		log.Fatalf("Error loading configuration: %v", err)
 	}
-	defer file.Close()
 
-	// Create a new CSV reader
-	reader := csv.NewReader(file)
+	// Ensure output directory exists
+	if err := os.MkdirAll(config.OutputDir, 0755); err != nil {
+		log.Fatalf("Failed to create output directory: %v", err)
+	}
 
-	if *includingHeaders {
-		// Read and discard the first record (header)
-		if _, err := reader.Read(); err != nil {
-			fmt.Println("Error:", err)
+	// Create archive file if it doesn't exist
+	if _, err := os.Stat(config.ArchiveFile); os.IsNotExist(err) {
+		file, err := os.Create(config.ArchiveFile)
+		if err != nil {
+			log.Fatalf("Failed to create archive file: %v", err)
+		}
+		err = file.Close()
+		if err != nil {
 			return
 		}
 	}
 
-	// Read all records from the CSV file
-	records, err := reader.ReadAll()
+	if !*noDownload {
+		// Run the download now
+		downloadSubtitles(config, *cookies)
+	}
+
+	// Update last run time
+	config.LastRunTime = time.Now().Unix()
+	err = saveConfig(config, *configFile)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		log.Fatalf("Error saving configuration: %v", err)
 	}
 
-	var filePaths []string
-	var wgDl sync.WaitGroup
-	// Download the subtitles from the youtube videos
-	for _, record := range records {
-		vidTitle := record[0]
-		vidURL := record[1]
-		vidAuthor := record[2]
-		wgDl.Add(1)
-		go func(vidURL, title, author string) {
-			defer wgDl.Done()
-			filePath := DownloadSubtitles(vidURL, title, author, DataDir)
-			filePaths = append(filePaths, filePath)
-		}(vidURL, vidTitle, vidAuthor)
+	archiveFile, err := os.OpenFile(config.ArchiveFile, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("Error opening archive file: %v", err)
 	}
-
-	wgDl.Wait()
-
+	if archiveFile == nil {
+		log.Fatalf("Archive file is nil")
+	}
+	defer func(archiveFile *os.File) {
+		err := archiveFile.Close()
+		if err != nil {
+			return
+		}
+	}(archiveFile)
+	// Update the archive file with the downloaded subtitles
+	// Clean up subtitles
 	var wgConv sync.WaitGroup
-	// Convert the subtitles to text
-	for _, filePath := range filePaths {
-		wgConv.Add(1)
-		fpWithExt := fmt.Sprintf("%s/%s.en.srt", DataDir, filePath)
-		go func(filePath string) {
-			defer wgConv.Done()
-			if filePath == "" {
-				return
+
+	for _, channel := range config.Channels {
+		channelDir := filepath.Join(config.OutputDir, channel.ChannelName)
+
+		channelSubtitleFiles, err := os.ReadDir(channelDir)
+		if err != nil {
+			log.Fatalf("Error reading directory %s: %v", channelDir, err)
+		}
+
+		for _, channelSubtitleFile := range channelSubtitleFiles {
+			if channelSubtitleFile.IsDir() {
+				continue
 			}
-			processSrtFile(filePath, filePath+".txt")
-			err := os.Remove(filePath)
-			if err != nil {
-				fmt.Printf("Removing File Error: %v\n", err)
+
+			wgConv.Add(1)
+			go func(fileInfo os.DirEntry, channelDir string) {
+				defer wgConv.Done()
+				subtitleFilePath := filepath.Join(channelDir, fileInfo.Name())
+				fmt.Printf("Cleaning subtitle file: %s\n", subtitleFilePath)
+				outputPath := subtitleFilePath
+				if !strings.HasSuffix(outputPath, ".txt") {
+					outputPath += ".txt"
+				}
+				processSubtitleFile(subtitleFilePath, outputPath)
+				fmt.Printf("Done cleaning subtitle file: %s\n", subtitleFilePath)
+				err := os.Remove(subtitleFilePath)
+				fmt.Printf("Removing subtitle file: %s\n", subtitleFilePath)
+				if err != nil {
+					fmt.Printf("Removing File Error: %v\n", err)
+				}
+			}(channelSubtitleFile, channelDir)
+
+			videoID := extractVideoID(channelSubtitleFile.Name())
+			fmt.Printf("Appending video ID to archive file: %s\n", videoID)
+			archiveLine := fmt.Sprintf("youtube %s\n", videoID)
+			if _, err := archiveFile.WriteString(archiveLine); err != nil {
+				log.Fatalf("Error writing to archive file: %v", err)
 			}
-		}(fpWithExt)
+			fmt.Printf("Done appending video ID to archive file: %s\n", videoID)
+
+		}
 	}
 
 	wgConv.Wait()
 
-}
+	// If not run once, schedule periodic runs
+	if !*runOnce {
+		fmt.Printf("Scheduled to check for new videos every %d hours\n", config.CheckInterval)
+		ticker := time.NewTicker(time.Duration(config.CheckInterval) * time.Hour)
+		defer ticker.Stop()
 
-func DownloadSubtitles(vidURL, title, author, outputDir string) string {
-	binPath := getytDlPath()
-	outputFile := fmt.Sprintf("%s==%s==%s==", author, formatOutputFile(title), url.QueryEscape(vidURL))
-
-	cmd := fmt.Sprintf("%s --write-auto-subs --convert-subs srt --skip-download --sub-lang en -o '%s' %s", binPath, outputFile, vidURL)
-	fmt.Printf("Running command: %s\n", cmd)
-	dlDlp := exec.Command("sh", "-c", cmd)
-	dlDlp.Dir = outputDir
-	err := dlDlp.Run()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return ""
+		for range ticker.C {
+			downloadSubtitles(config, "")
+			config.LastRunTime = time.Now().Unix()
+			err = saveConfig(config, *configFile)
+			if err != nil {
+				log.Fatalf("Error saving configuration: %v", err)
+			}
+		}
 	}
-	return outputFile
 }
 
-func getytDlPath() string {
-	ytDlPath, err := exec.LookPath("yt-dlp")
+// loadConfig reads the configuration from a file
+func loadConfig(path string) (*Config, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println("yt-dlp not found in PATH")
-		return ""
+		return nil, err
 	}
-	return ytDlPath
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			return
+		}
+	}(file)
+
+	config := &Config{}
+	if err := json.NewDecoder(file).Decode(config); err != nil {
+		return nil, fmt.Errorf("error parsing config: %w", err)
+	}
+	return config, nil
 }
 
-func formatOutputFile(input string) string {
-	// Convert to lowercase
-	result := strings.ToLower(input)
-	// Replace spaces with underscores
-	result = strings.ReplaceAll(result, "_", "")
-	// Replace spaces with underscores
-	result = strings.ReplaceAll(result, " ", "_")
-	// Remove slashes
-	result = strings.ReplaceAll(result, "/", "")
-	// Remove colons
-	result = strings.ReplaceAll(result, ":", "")
-	// Remove question marks
-	result = strings.ReplaceAll(result, "?", "")
-	// Remove exclamation marks
-	result = strings.ReplaceAll(result, "!", "")
-	// Remove commas
-	result = strings.ReplaceAll(result, ",", "")
-	// Remove periods
-	result = strings.ReplaceAll(result, ".", "")
-	// Remove parentheses
-	result = strings.ReplaceAll(result, "(", "")
-	result = strings.ReplaceAll(result, ")", "")
-	// Remove brackets
-	result = strings.ReplaceAll(result, "[", "")
-	result = strings.ReplaceAll(result, "]", "")
-	// Remove curly braces
-	result = strings.ReplaceAll(result, "{", "")
-	result = strings.ReplaceAll(result, "}", "")
-	// Remove ampersands
-	result = strings.ReplaceAll(result, "&", "and")
-	// Remove | signs
-	result = strings.ReplaceAll(result, "|", "")
-	// Remove single quotes signs
-	result = strings.ReplaceAll(result, "'", "")
-	// Remove double quotes signs
-	result = strings.ReplaceAll(result, "\"", "")
-	// Remove backticks
-	result = strings.ReplaceAll(result, "`", "")
-	return result
+// saveConfig writes the configuration to a file
+func saveConfig(config *Config, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			return
+		}
+	}(file)
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(config)
 }
 
-func processSrtFile(inputFilename, outputFilename string) {
+// downloadSubtitles downloads subtitles from all configured channels
+func downloadSubtitles(config *Config, cookies string) {
+	fmt.Println("Starting subtitle download process...")
+	currentTime := time.Now().UTC().Format("2006-01-02 15:04:05")
+	fmt.Printf("Current UTC time: %s\n", currentTime)
+
+	// Process each channel
+	for _, channel := range config.Channels {
+		fmt.Printf("Processing channel: %s\n", channel)
+
+		// Create channel-specific directory
+		channelDir := filepath.Join(config.OutputDir, channel.ChannelName)
+		if err := os.MkdirAll(channelDir, 0755); err != nil {
+			log.Printf("Error creating directory for channel %s: %v", channel.ChannelName, err)
+			continue
+		}
+
+		// Prepare languages
+		languageOpts := strings.Join(config.Languages, ",")
+
+		// Using the specific format requested: %(title)s-%(id)s.%(ext)s
+		outputTemplate := filepath.Join(channelDir, "%(id)s||%(title)s.%(ext)s")
+
+		// Prepare command: yt-dlp with options for subtitle download only
+		args := []string{
+			"--skip-download",          // Don't download the video
+			"--write-auto-sub",         // Download auto-generated subtitles
+			"--sub-format", "srt/best", // Prefer SRT format
+			"--convert-subs", "srt", // Convert subtitles to SRT
+			"--sub-langs", languageOpts, // Languages to download
+			"--download-archive", config.ArchiveFile, // Track downloaded videos
+			"--output", outputTemplate, // User-specified output file naming
+		}
+
+		// Add cookies option only if cookies string is not empty
+		if cookies != "" {
+			args = append(args, "--cookies", cookies)
+		}
+
+		// Add channel URL at the end
+		args = append(args, channel.ChannelURL)
+
+		// Execute yt-dlp command
+		cmd := exec.Command("yt-dlp", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		fmt.Printf("Running: yt-dlp %s\n", strings.Join(args, " "))
+		if err := cmd.Run(); err != nil {
+			log.Printf("Error downloading subtitles from %s: %v", channel, err)
+			continue
+		}
+
+		fmt.Printf("Finished processing channel: %s\n", channel)
+	}
+
+	fmt.Println("Subtitle download process completed.")
+}
+
+func extractVideoID(fileName string) string {
+	videoFilename := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	parts := strings.Split(videoFilename, "||")
+	if len(parts) > 0 {
+		return strings.TrimSpace(parts[0])
+	}
+	return videoFilename
+}
+
+func processSubtitleFile(inputFilename, outputFilename string) {
 	if inputFilename == "" {
 		return
 	}
@@ -165,7 +267,12 @@ func processSrtFile(inputFilename, outputFilename string) {
 		fmt.Printf("Error: Input file '%s' not found.\n", inputFilename)
 		return
 	}
-	defer inputFile.Close()
+	defer func(inputFile *os.File) {
+		err := inputFile.Close()
+		if err != nil {
+			fmt.Printf("An error occurred: %v\n", err)
+		}
+	}(inputFile)
 
 	var processedLines []string
 	scanner := bufio.NewScanner(inputFile)
@@ -174,7 +281,7 @@ func processSrtFile(inputFilename, outputFilename string) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if !reNumber.MatchString(line) && !reTimestamp.MatchString(line) && line != "" {
-			if line != "" && !contains(processedLines, line) {
+			if !contains(processedLines, line) {
 				processedLines = append(processedLines, line)
 			}
 		}
@@ -190,7 +297,12 @@ func processSrtFile(inputFilename, outputFilename string) {
 		fmt.Printf("An error occurred: %v\n", err)
 		return
 	}
-	defer outputFile.Close()
+	defer func(outputFile *os.File) {
+		err := outputFile.Close()
+		if err != nil {
+			fmt.Printf("An error occurred: %v\n", err)
+		}
+	}(outputFile)
 
 	combinedLines := strings.Join(processedLines, " ")
 	_, err = outputFile.WriteString(combinedLines)

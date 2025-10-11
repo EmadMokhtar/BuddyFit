@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 
 	"github.com/EmadMokhtar/BuddyFit/internal/config"
 )
@@ -39,7 +39,10 @@ func (a *Agent) GetContext(usrPrompt string) string {
 	dsn := os.Getenv("BF_DB_URL")
 
 	if dsn == "" {
-		fmt.Fprintf(os.Stderr, "BF_DB_URL environment variable is not set\n")
+		_, err := fmt.Fprintf(os.Stderr, "BF_DB_URL environment variable is not set\n")
+		if err != nil {
+			return ""
+		}
 		os.Exit(1)
 	}
 	// Connect to the database
@@ -49,7 +52,10 @@ func (a *Agent) GetContext(usrPrompt string) string {
 	// Set PGOPTIONS environment variable
 	connConfig, err := pgx.ParseConfig(dsn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to parse DSN: %v\n", err)
+		_, err := fmt.Fprintf(os.Stderr, "Unable to parse DSN: %v\n", err)
+		if err != nil {
+			return ""
+		}
 		os.Exit(1)
 	}
 
@@ -63,31 +69,48 @@ func (a *Agent) GetContext(usrPrompt string) string {
 
 	conn, err := pgx.ConnectConfig(ctx, connConfig)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		_, err := fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		if err != nil {
+			return ""
+		}
 		os.Exit(1)
 	}
-	defer conn.Close(ctx)
+	defer func(conn *pgx.Conn, ctx context.Context) {
+		err := conn.Close(ctx)
+		if err != nil {
+			fmt.Printf("Error closing connection: %v\n", err)
+		}
+	}(conn, ctx)
 	// Ask pgai to get related docs using RAG
-	var retdDocs string
-	err = conn.QueryRow(ctx, "SELECT get_related_docs($1);", usrPrompt).Scan(&retdDocs)
+	var retrievedDocs string
+	err = conn.QueryRow(ctx, "SELECT get_related_docs($1);", usrPrompt).Scan(&retrievedDocs)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to get response: %v\n", err)
+		_, err := fmt.Fprintf(os.Stderr, "Unable to get response: %v\n", err)
+		if err != nil {
+			return ""
+		}
 		os.Exit(1)
 	}
-	return retdDocs
+	return retrievedDocs
 }
 
 func (a *Agent) AddUserMessage(usrPrompt string) {
-	retdDocs := a.GetContext(usrPrompt)
+	relatedDocs := a.GetContext(usrPrompt)
 	tmpl, err := template.ParseFiles("templates/prompt_template.tmpl")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading template: %v\n", err)
+		_, err := fmt.Fprintf(os.Stderr, "Error loading template: %v\n", err)
+		if err != nil {
+			return
+		}
 		os.Exit(1)
 	}
 	var prompt bytes.Buffer
-	err = tmpl.Execute(&prompt, map[string]string{"Context": retdDocs, "UserPrompt": usrPrompt})
+	err = tmpl.Execute(&prompt, map[string]string{"Context": relatedDocs, "UserPrompt": usrPrompt})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing template: %v\n", err)
+		_, err := fmt.Fprintf(os.Stderr, "Error executing template: %v\n", err)
+		if err != nil {
+			return
+		}
 		os.Exit(1)
 	}
 	a.Messages = append(a.Messages, AIMessage{Role: "user", Content: prompt.String()})
@@ -107,7 +130,6 @@ func (a *Agent) CompleteChat() chan string {
 		fmt.Printf("Error creating request: %v\n", err)
 		os.Exit(1)
 	}
-	//req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 	// Create a new HTTP client and send the request
 	client := &http.Client{}
@@ -146,7 +168,10 @@ func (a *Agent) CompleteChat() chan string {
 
 			// If this is the last message, break the loop
 			if streamResp.Done {
-				resp.Body.Close()
+				err := resp.Body.Close()
+				if err != nil {
+					return
+				}
 				break
 			}
 		}
