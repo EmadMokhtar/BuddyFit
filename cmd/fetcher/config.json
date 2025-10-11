@@ -1,0 +1,21 @@
+{
+  "channels": [
+    {
+      "id": "jeff_nippard",
+      "name": "Jeff Nippard",
+      "url": "https://www.youtube.com/@JeffNippard/videos"
+    },
+    {
+      "id": "dr_mike",
+      "name": "Dr. Mike",
+      "url": "https://www.youtube.com/@RenaissancePeriodization/videos"
+    }
+  ],
+  "output_dir": "../../data/youtube_subtitles",
+  "archive_file": "../../data/downloaded_subtitles.txt",
+  "check_interval_hours": 24,
+  "languages": [
+    "en"
+  ],
+  "last_run_time": 1751979491
+}
