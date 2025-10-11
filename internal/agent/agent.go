@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 
 	"github.com/EmadMokhtar/BuddyFit/internal/config"
 )
@@ -68,13 +68,13 @@ func (a *Agent) GetContext(usrPrompt string) string {
 	}
 	defer conn.Close(ctx)
 	// Ask pgai to get related docs using RAG
-	var retdDocs string
-	err = conn.QueryRow(ctx, "SELECT get_related_docs($1);", usrPrompt).Scan(&retdDocs)
+	var retrievedDocs string
+	err = conn.QueryRow(ctx, "SELECT get_related_docs($1);", usrPrompt).Scan(&retrievedDocs)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to get response: %v\n", err)
 		os.Exit(1)
 	}
-	return retdDocs
+	return retrievedDocs
 }
 
 func (a *Agent) AddUserMessage(usrPrompt string) {
@@ -107,7 +107,6 @@ func (a *Agent) CompleteChat() chan string {
 		fmt.Printf("Error creating request: %v\n", err)
 		os.Exit(1)
 	}
-	//req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 	// Create a new HTTP client and send the request
 	client := &http.Client{}
