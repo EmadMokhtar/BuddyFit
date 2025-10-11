@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   golang-ci:
@@ -30,6 +31,8 @@ jobs:
 
           # Optional: working directory, useful for monorepos
           # working-directory: somedir
+
+          only-new-issues: true
 
           # Optional: golangci-lint command line arguments.
           #
